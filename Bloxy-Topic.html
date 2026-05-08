@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bloxy Topic | True Soccer Community</title>
+    <!-- GOOGLE AUTH API -->
+    <script src="https://google.com" async defer></script>
+    <style>
+        :root { --bg: #0b0e11; --card: #15191c; --accent: #00ff88; --text: #ffffff; --border: #2d3339; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        .hidden { display: none !important; }
+
+        /* --- AUTHENTICATION PAGE --- */
+        #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: var(--card); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 350px; text-align: center; }
+
+        /* --- NAVIGATION --- */
+        nav { background: #15191c; height: 60px; display: flex; align-items: center; padding: 0 30px; border-bottom: 1px solid var(--border); justify-content: space-between; }
+        .logo { font-size: 22px; font-weight: bold; color: var(--accent); cursor: pointer; }
+        .nav-link { cursor: pointer; color: #888; font-weight: 500; transition: 0.2s; }
+        .nav-link:hover, .nav-link.active { color: var(--accent); }
+
+        /* --- LAYOUT & CARDS --- */
+        .page { display: flex; height: calc(100vh - 60px); overflow-y: auto; justify-content: center; padding: 20px; }
+        .feed { width: 600px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 50px; }
+        .post-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; }
+        .post-media { width: 100%; max-height: 500px; object-fit: contain; background: #000; display: block; }
+
+        /* --- UI ELEMENTS --- */
+        input, textarea { width: 100%; background: #0b0e11; border: 1px solid var(--border); color: white; padding: 12px; margin: 10px 0; border-radius: 8px; box-sizing: border-box; }
+        button { background: var(--accent); color: black; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
+        .danger-btn { background: #ff4444; color: white; margin-top: 15px; width: 100%; }
+        
+        .owner-badge { border: 1px solid var(--accent); color: var(--accent); font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. AUTHENTICATION GATE -->
+    <div id="auth-overlay">
+        <div class="auth-card">
+            <h1 style="color:var(--accent); margin-bottom: 5px;">Bloxy Topic</h1>
+            <p style="color:#888; font-size: 14px; margin-bottom: 25px;">Sign in to the True Soccer Hub</p>
+            
+            <input type="text" id="auth-username" placeholder="Username">
+            <div style="text-align: left; font-size: 12px; margin: 10px 0;">
+                <input type="checkbox" id="remember-me" style="width: auto;"> Remember Me
+            </div>
+            <button onclick="manualAuth()" style="width: 100%;">Sign In / Create Account</button>
+            
+            <div style="margin:20px; color:#444; font-size:12px;">— OR —</div>
+
+            <!-- GOOGLE LOGIN BUTTON -->
+            <div id="g_id_onload"
+                 data-client_id="://googleusercontent.com"
+                 data-callback="onGoogleSignIn">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-text="signin_with" data-size="large"></div>
+            
+            <p style="color:#444; font-size:10px; margin-top:15px;">Google login requires a server URL (like localhost or GitHub Pages).</p>
+        </div>
+    </div>
+
+    <!-- 2. MAIN APPLICATION -->
+    <div id="app" class="hidden">
+        <nav>
+            <div class="logo" onclick="showPage('feed-page')">Bloxy Topic</div>
+            <div style="display:flex; gap:25px; align-items:center;">
+                <div class="nav-link active" onclick="showPage('feed-page', this)">Home</div>
+                <div class="nav-link" onclick="showPage('league-page', this)">Leagues</div>
+                <div class="nav-link" onclick="showPage('settings-page', this)">Settings</div>
+                <div id="nav-user-box" style="display:flex; align-items:center; gap:10px; margin-left:10px;">
+                    <b id="display-name"></b>
+                    <span id="display-badge" class="hidden owner-badge">OWNER</span>
+                </div>
+                <button onclick="logout()" style="background:#333; color:white; font-size:11px; padding: 5px 12px;">Logout</button>
+            </div>
+        </nav>
+
+        <!-- FEED PAGE -->
+        <div id="feed-page" class="page">
+            <div class="feed">
+                <div class="post-card" style="padding:20px;">
+                    <textarea id="post-input" placeholder="Share a soccer update..."></textarea>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <label style="cursor:pointer; color:var(--accent); font-size:13px;">
+                            📎 Attach Image/Video
+                            <input type="file" id="post-file" hidden accept="image/*,video/*">
+                        </label>
+                        <button onclick="submitPost()" style="margin-left:auto;">Post to Topic</button>
+                    </div>
+                </div>
+                <div id="news-feed"></div>
+            </div>
+        </div>
+
+        <!-- LEAGUE PAGE -->
+        <div id="league-page" class="page hidden">
+            <div style="text-align:center; padding-top:100px; max-width:500px;">
+                <h1>True Soccer Leagues</h1>
+                <p style="color:#888;">All competitive league scheduling and drafts are handled via Discord.</p>
+                <br>
+                <a href="https://discord.gg" style="background:#5865F2; color:white; padding:15px 30px; border-radius:5px; text-decoration:none; font-weight:bold;">Join Official Discord</a>
+            </div>
+        </div>
+
+        <!-- SETTINGS PAGE -->
+        <div id="settings-page" class="page hidden">
+            <div class="auth-card" style="margin-top:50px;">
+                <h3>Account Settings</h3>
+                <label>Change Display Name</label>
+                <input type="text" id="edit-name">
+                <button onclick="saveProfile()" style="width:100%;">Save Profile</button>
+                <button class="danger-btn" onclick="deleteAccount()">Delete Account & Restart</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ENGINE ---
+        let currentUser = null;
+        let posts = JSON.parse(localStorage.getItem('bt_posts')) || [];
+        const isDeviceOwner = localStorage.getItem('bt_claimed') === null;
+
+        window.onload = () => {
+            // Check Session (Permanent or Temporary)
+            const saved = localStorage.getItem('bt_session') || sessionStorage.getItem('bt_session');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                renderApp();
+            }
+
+            // Seed Stadium Image Post
+            if (posts.length === 0) {
+                posts.push({
+                    author: "BloxyGuy_Dev", role: "Owner",
+                    text: "⚽True Soccer🥅 Early Access development is going great! Here's the stadium progress.",
+                    media: "https://imgur.com", // STADIUM IMAGE
+                    type: "image", likes: 10, dislikes: 0
+                });
+                savePosts();
+            }
+        };
+
+        // --- AUTHENTICATION ---
+        function onGoogleSignIn(response) {
+            const payload = JSON.parse(atob(response.credential.split('.')));
+            completeAuth(payload.name, true);
+        }
+
+        function manualAuth() {
+            const name = document.getElementById('auth-username').value || "BloxyGuy_Dev";
+            const remember = document.getElementById('remember-me').checked;
+            completeAuth(name, remember);
+        }
+
+        function completeAuth(name, remember) {
+            let role = "User";
+            if (isDeviceOwner) {
+                role = "Owner";
+                localStorage.setItem('bt_claimed', 'true');
+            }
+
+            currentUser = { username: name, role: role };
+            
+            if (remember) localStorage.setItem('bt_session', JSON.stringify(currentUser));
+            else sessionStorage.setItem('bt_session', JSON.stringify(currentUser));
+            
+            renderApp();
+        }
+
+        function renderApp() {
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('display-name').innerText = currentUser.username;
+            document.getElementById('edit-name').value = currentUser.username;
+            
+            if (currentUser.role === "Owner") {
+                document.getElementById('display-badge').classList.remove('hidden');
+            }
+            renderPosts();
+        }
+
+        // --- FEED & MEDIA ---
+        function submitPost() {
+            const text = document.getElementById('post-input').value;
+            const fileInput = document.getElementById('post-file');
+            const file = fileInput.files[0];
+
+            if (!text && !file) return;
+
+            const postObj = { author: currentUser.username, role: currentUser.role, text: text, likes: 0, dislikes: 0 };
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    postObj.media = e.target.result;
+                    postObj.type = file.type.startsWith('video') ? 'video' : 'image';
+                    posts.unshift(postObj); savePosts(); renderPosts();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                posts.unshift(postObj); savePosts(); renderPosts();
+            }
+            document.getElementById('post-input').value = "";
+            fileInput.value = "";
+        }
+
+        function renderPosts() {
+            const container = document.getElementById('news-feed');
+            container.innerHTML = posts.map((p, i) => `
+                <div class="post-card" style="margin-bottom:20px;">
+                    <div style="padding:15px; display:flex; align-items:center; gap:10px;">
+                        <b style="${p.role === 'Owner' ? 'color:var(--accent)' : ''}">${p.author}</b>
+                        ${p.role === 'Owner' ? '<span class="owner-badge">OWNER</span>' : ''}
+                    </div>
+                    ${p.media ? (p.type === 'video' ? `<video src="${p.media}" controls class="post-media"></video>` : `<img src="${p.media}" class="post-media">`) : ''}
+                    <div style="padding:15px;">${p.text}</div>
+                    <div style="padding:10px 15px; border-top:1px solid var(--border); display:flex; gap:20px; font-size:14px; color:#888;">
+                        <span onclick="react(${i},'L')" style="cursor:pointer;">👍 ${p.likes}</span>
+                        <span onclick="react(${i},'D')" style="cursor:pointer;">👎 ${p.dislikes}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- SETTINGS ---
+        function showPage(id, btn) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            if(btn) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        }
+
+        function saveProfile() {
+            currentUser.username = document.getElementById('edit-name').value;
+            // Update session
+            if(localStorage.getItem('bt_session')) localStorage.setItem('bt_session', JSON.stringify(currentUser));
+            else sessionStorage.setItem('bt_session', JSON.stringify(currentUser));
+            location.reload();
+        }
+
+        function react(i, t) { t === 'L' ? posts[i].likes++ : posts[i].dislikes++; savePosts(); renderPosts(); }
+        function savePosts() { localStorage.setItem('bt_posts', JSON.stringify(posts)); }
+        function logout() { localStorage.removeItem('bt_session'); sessionStorage.removeItem('bt_session'); location.reload(); }
+        function deleteAccount() { if(confirm("Permanently delete data?")) { localStorage.clear(); location.reload(); } }
+    </script>
+</body>
+</html>
